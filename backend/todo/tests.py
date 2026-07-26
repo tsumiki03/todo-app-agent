@@ -1,0 +1,340 @@
+from django.test import TestCase
+from ninja.testing import TestClient
+from .api import router
+from .models import Todo
+
+# Create your tests here.
+
+
+class HealthCheckTest(TestCase):
+    def setUp(self):
+        self.ninja_client = TestClient(router)
+
+    def test_health(self):
+        response = self.ninja_client.get("/health")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"status": "ok"})
+
+
+class TodoGetApiTests(TestCase):
+    def setUp(self):
+        self.ninja_client = TestClient(router)
+
+    def test_get_todos_empty(self):
+        """データが0件の場合空のリストが返ること"""
+        response = self.ninja_client.get("/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), [])
+
+    def test_get_todos_single(self):
+        """データが1件のみ存在する場合正しい構造で返ること"""
+        todo = Todo.objects.create(
+            user_id="mock-user-123", title="テストタスク", description="テスト説明"
+        )
+
+        response = self.ninja_client.get("/")
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]["id"], todo.id)
+        self.assertEqual(data[0]["title"], "テストタスク")
+        self.assertEqual(data[0]["description"], "テスト説明")
+        self.assertFalse(data[0]["is_done"])
+        self.assertIn("created_at", data[0])
+
+    def test_get_todos_ordering(self):
+        """データが複数件ある場合、作成日時 (created_at) の降順で並んでいること"""
+        todo_old = Todo.objects.create(user_id="mock-user-123", title="古いタスク")
+        todo_new = Todo.objects.create(user_id="mock-user-123", title="新しいタスク")
+
+        response = self.ninja_client.get("/")
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(len(data), 2)
+        self.assertEqual(data[0]["id"], todo_new.id)
+        self.assertEqual(data[1]["id"], todo_old.id)
+
+
+class TodoPostApiTests(TestCase):
+    def setUp(self):
+        self.ninja_client = TestClient(router)
+
+    def test_success_create_todo(self):
+        """正しいタイトルと説明文を送ると、DBに1件増えて、正しい構造の TodoSchema が返ること"""
+        payload = {"title": "テストタスク", "description": "テスト説明"}
+        response = self.ninja_client.post("/", json=payload)
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(Todo.objects.count(), 1)
+        created_todo = Todo.objects.first()
+        self.assertEqual(data["id"], created_todo.id)
+        self.assertEqual(data["title"], "テストタスク")
+        self.assertEqual(data["description"], "テスト説明")
+        self.assertFalse(data["is_done"])
+        self.assertIn("created_at", data)
+
+    def test_fail_create_todo_title_empty(self):
+        """タイトルが空の状態で送ると422エラーが返り、DBにデータが登録されないこと"""
+        payload = {"title": "", "description": "タイトルが空のテスト"}
+        response = self.ninja_client.post("/", json=payload)
+
+        self.assertEqual(response.status_code, 422)
+        self.assertEqual(Todo.objects.count(), 0)
+
+    def test_fail_create_todo_long_title(self):
+        """タイトルが200文字より長いと422エラーが返り、DBにデータが登録されないこと"""
+        long_title = "a" * 201
+        payload = {"title": long_title, "description": "タイトルが長過ぎるテスト"}
+        response = self.ninja_client.post("/", json=payload)
+
+        self.assertEqual(response.status_code, 422)
+        self.assertEqual(Todo.objects.count(), 0)
+
+    def test_success_create_todo_max_length_title(self):
+        """タイトルが200文字 (上限ちょうど) だとDBに1件増えて、正しい構造の TodoSchema が返ること"""
+        max_length_title = "a" * 200
+        payload = {
+            "title": max_length_title,
+            "description": "タイトル長が上限ちょうどのテスト",
+        }
+        response = self.ninja_client.post("/", json=payload)
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(Todo.objects.count(), 1)
+        created_todo = Todo.objects.first()
+        self.assertEqual(data["id"], created_todo.id)
+        self.assertEqual(data["title"], max_length_title)
+        self.assertEqual(data["description"], "タイトル長が上限ちょうどのテスト")
+        self.assertFalse(data["is_done"])
+        self.assertIn("created_at", data)
+
+    def test_success_create_todo_description_empty(self):
+        """説明が空の状態で送っても登録が成功すること"""
+        payload = {"title": "テストタスク", "description": ""}
+        response = self.ninja_client.post("/", json=payload)
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(Todo.objects.count(), 1)
+        created_todo = Todo.objects.first()
+        self.assertEqual(data["id"], created_todo.id)
+        self.assertEqual(data["title"], "テストタスク")
+        self.assertEqual(data["description"], "")
+        self.assertFalse(data["is_done"])
+        self.assertIn("created_at", data)
+
+    def test_success_create_todo_description_omitted(self):
+        """descriptionが省略されていても登録が成功すること"""
+        payload = {"title": "テストタスク"}
+        response = self.ninja_client.post("/", json=payload)
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(Todo.objects.count(), 1)
+        created_todo = Todo.objects.first()
+        self.assertEqual(data["id"], created_todo.id)
+        self.assertEqual(data["title"], "テストタスク")
+        self.assertEqual(data["description"], "")
+        self.assertFalse(data["is_done"])
+        self.assertIn("created_at", data)
+
+
+class TodoPutApiTests(TestCase):
+    def setUp(self):
+        self.ninja_client = TestClient(router)
+        self.todo = Todo.objects.create(
+            user_id="mock-user-123", title="テストタスク", description="テスト説明"
+        )
+
+    def test_success_update_todo(self):
+        """全フィールドを変更する場合、問題なく変更できること"""
+        payload = {
+            "title": "修正テストタスク",
+            "description": "修正テスト説明",
+            "is_done": True,
+        }
+        response = self.ninja_client.put(f"/{self.todo.id}", json=payload)
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(Todo.objects.count(), 1)
+        updated_todo = Todo.objects.first()
+
+        self.assertEqual(self.todo.id, data["id"])
+        self.assertEqual(data["id"], updated_todo.id)
+
+        self.assertEqual(data["title"], payload["title"])
+        self.assertEqual(data["description"], payload["description"])
+        self.assertTrue(data["is_done"])
+
+        self.assertEqual(updated_todo.created_at, self.todo.created_at)
+        self.assertEqual(updated_todo.title, payload["title"])
+        self.assertEqual(updated_todo.description, payload["description"])
+        self.assertTrue(data["is_done"])
+
+    def test_success_update_todo_empty_json(self):
+        """空のJSONを送った場合、元のデータが変更されないこと"""
+        payload = {}
+        response = self.ninja_client.put(f"/{self.todo.id}", json=payload)
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(Todo.objects.count(), 1)
+        updated_todo = Todo.objects.first()
+        self.assertEqual(self.todo.id, data["id"])
+        self.assertEqual(data["id"], updated_todo.id)
+
+        self.assertEqual(data["title"], "テストタスク")
+        self.assertEqual(data["description"], "テスト説明")
+        self.assertFalse(data["is_done"])
+
+        self.assertEqual(updated_todo.created_at, self.todo.created_at)
+        self.assertEqual(updated_todo.title, "テストタスク")
+        self.assertEqual(updated_todo.description, "テスト説明")
+        self.assertFalse(updated_todo.is_done)
+
+    def test_success_update_todo_is_done_only(self):
+        """is_done のみを変更した場合、他のフィールドは変更されないこと"""
+        payload = {"is_done": True}
+        response = self.ninja_client.put(f"/{self.todo.id}", json=payload)
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(Todo.objects.count(), 1)
+        updated_todo = Todo.objects.first()
+        self.assertEqual(self.todo.id, data["id"])
+        self.assertEqual(data["id"], updated_todo.id)
+
+        self.assertEqual(data["title"], "テストタスク")
+        self.assertEqual(data["description"], "テスト説明")
+        self.assertTrue(data["is_done"])
+
+        self.assertEqual(updated_todo.created_at, self.todo.created_at)
+        self.assertEqual(updated_todo.title, "テストタスク")
+        self.assertEqual(updated_todo.description, "テスト説明")
+        self.assertTrue(updated_todo.is_done)
+
+    def test_success_update_todo_title_max_length(self):
+        """タイトルが最大長さちょうどの場合、変更が成功すること"""
+        long_title = "a" * 200
+        payload = {"title": long_title}
+        response = self.ninja_client.put(f"/{self.todo.id}", json=payload)
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(Todo.objects.count(), 1)
+        updated_todo = Todo.objects.first()
+        self.assertEqual(self.todo.id, data["id"])
+        self.assertEqual(data["id"], updated_todo.id)
+
+        self.assertEqual(data["title"], long_title)
+        self.assertEqual(data["description"], "テスト説明")
+        self.assertFalse(data["is_done"])
+
+        self.assertEqual(updated_todo.created_at, self.todo.created_at)
+        self.assertEqual(updated_todo.title, long_title)
+        self.assertEqual(updated_todo.description, "テスト説明")
+        self.assertFalse(updated_todo.is_done)
+
+    def test_fail_update_todo_title_empty(self):
+        """タイトルが空文字で送った場合、422エラーが返り元のデータは変更されないこと"""
+        payload = {"title": "", "description": "修正テスト説明", "is_done": True}
+        response = self.ninja_client.put(f"/{self.todo.id}", json=payload)
+
+        self.assertEqual(response.status_code, 422)
+        self.assertEqual(Todo.objects.count(), 1)
+        todo = Todo.objects.first()
+
+        self.assertEqual(todo.id, self.todo.id)
+        self.assertEqual(todo.created_at, self.todo.created_at)
+        self.assertEqual(todo.title, "テストタスク")
+        self.assertEqual(todo.description, "テスト説明")
+        self.assertFalse(todo.is_done)
+
+    def test_fail_update_todo_long_title(self):
+        """タイトルが最大長さよりも長い場合、422エラーが返り元のデータは変更されないこと"""
+        long_title = "a" * 201
+        payload = {
+            "title": long_title,
+            "description": "修正テスト説明",
+            "is_done": True,
+        }
+        response = self.ninja_client.put(f"/{self.todo.id}", json=payload)
+
+        self.assertEqual(response.status_code, 422)
+        self.assertEqual(Todo.objects.count(), 1)
+        todo = Todo.objects.first()
+
+        self.assertEqual(todo.id, self.todo.id)
+        self.assertEqual(todo.created_at, self.todo.created_at)
+        self.assertEqual(todo.title, "テストタスク")
+        self.assertEqual(todo.description, "テスト説明")
+        self.assertFalse(todo.is_done)
+
+    def test_fail_update_todo_id_not_exist(self):
+        """指定したIDのデータが存在しない場合、404エラーが返り元のデータは変更されないこと"""
+        id_not_exist = 999
+        payload = {
+            "title": "修正テストタスク",
+            "description": "修正テスト説明",
+            "is_done": True,
+        }
+        response = self.ninja_client.put(f"/{id_not_exist}", json=payload)
+
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(Todo.objects.count(), 1)
+        todo = Todo.objects.first()
+
+        self.assertEqual(todo.id, self.todo.id)
+        self.assertEqual(todo.created_at, self.todo.created_at)
+        self.assertEqual(todo.title, "テストタスク")
+        self.assertEqual(todo.description, "テスト説明")
+        self.assertFalse(todo.is_done)
+
+
+class TodoDeleteApiTests(TestCase):
+    def setUp(self):
+        self.ninja_client = TestClient(router)
+        self.todo = Todo.objects.create(
+            user_id="mock-user-123", title="テストタスク", description="テスト説明"
+        )
+
+    def test_success_delete_todo(self):
+        """存在するIDを指定した場合、そのデータのみ削除され、既存のデータに影響がないこと"""
+        other_todo = Todo.objects.create(title="別のタスク")
+        response = self.ninja_client.delete(f"/{self.todo.id}")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"success": True})
+
+        self.assertFalse(Todo.objects.filter(id=self.todo.id).exists())
+
+        self.assertEqual(Todo.objects.count(), 1)
+        todo = Todo.objects.first()
+        self.assertEqual(todo.id, other_todo.id)
+        self.assertEqual(todo.created_at, other_todo.created_at)
+        self.assertEqual(todo.title, other_todo.title)
+        self.assertEqual(todo.description, other_todo.description)
+        self.assertEqual(todo.is_done, other_todo.is_done)
+
+    def test_fail_delete_todo_not_exist(self):
+        """存在しないIDを指定した場合、404 エラーが返り、既存のデータに影響がないこと"""
+        id_not_exist = 999
+        response = self.ninja_client.delete(f"/{id_not_exist}")
+
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(Todo.objects.count(), 1)
+        todo = Todo.objects.first()
+
+        self.assertEqual(todo.id, self.todo.id)
+        self.assertEqual(todo.created_at, self.todo.created_at)
+        self.assertEqual(todo.title, "テストタスク")
+        self.assertEqual(todo.description, "テスト説明")
+        self.assertFalse(todo.is_done)

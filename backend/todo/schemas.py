@@ -1,0 +1,25 @@
+from datetime import datetime
+from ninja import Schema, Field
+
+
+class HealthCheckSchema(Schema):
+    status: str
+
+
+class TodoSchema(Schema):
+    id: int
+    title: str
+    description: str
+    is_done: bool
+    created_at: datetime
+
+
+class TodoCreateSchema(Schema):
+    title: str = Field(..., min_length=1, max_length=200)
+    description: str = ""
+
+
+class TodoUpdateSchema(Schema):
+    title: str | None = Field(None, min_length=1, max_length=200)
+    description: str | None = None
+    is_done: bool | None = None
