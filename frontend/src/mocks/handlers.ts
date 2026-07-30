@@ -7,4 +7,4 @@ export const handlers = [
     console.log("MSW: Intercepted GET /api/todo/health");
     return HttpResponse.json({ status: "ok" });
   }),
-]
+];
