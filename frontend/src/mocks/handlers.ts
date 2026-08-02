@@ -45,7 +45,7 @@ export const handlers = [
       is_done: false,
       created_at: new Date().toISOString(),
     };
-    mockTodos.push(newTodo);
+    mockTodos.unshift(newTodo);
     return HttpResponse.json(newTodo, { status: 200 });
   }),
 

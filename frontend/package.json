@@ -20,6 +20,7 @@
     "@mantine/form": "^9.5.0",
     "@mantine/hooks": "^9.4.2",
     "@phosphor-icons/react": "^2.1.10",
+    "@tanstack/react-query": "^5.101.4",
     "axios": "^1.18.1",
     "react": "^19.2.7",
     "react-dom": "^19.2.7"

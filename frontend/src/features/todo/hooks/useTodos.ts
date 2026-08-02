@@ -1,42 +1,64 @@
-import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Todo, TodoUpdateInput } from "../types";
 import { todoApi } from "../api/todoApi";
 
-export const useTodos = () => {
-  const [todos, setTodos] = useState<Todo[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+// キャッシュを識別するためのキーを定義
+const TODOS_QUERY_KEY = ["todos"];
 
-  useEffect(() => {
-    const fetchTodos = async () => {
-      try {
-        const data = await todoApi.getAll();
-        setTodos(data);
-      } catch {
-        setError("failed to fetch Todos");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchTodos();
-  }, []);
+export const useTodos = () => {
+  const queryClient = useQueryClient();
+
+  // Todo 一覧の取得 (Read)
+  const {
+    data: todos = [],
+    isLoading,
+    error: queryError,
+  } = useQuery<Todo[]>({
+    queryKey: TODOS_QUERY_KEY,
+    queryFn: () => todoApi.getAll(),
+  });
+
+  // Todo の追加 (Create)
+  const createMutation = useMutation({
+    mutationFn: ({ title, description }: { title: string; description?: string }) =>
+      todoApi.create({ title, description }),
+    onSuccess: () => {
+      // 作成成功時にキャッシュを無効化して最新データを自動再取得
+      queryClient.invalidateQueries({
+        queryKey: TODOS_QUERY_KEY,
+      });
+    },
+  });
+
+  // Todo の更新 (Update)
+  const updateMutation = useMutation({
+    mutationFn: ({ todo_id, fields }: { todo_id: number; fields: TodoUpdateInput }) =>
+      todoApi.update(todo_id, fields),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: TODOS_QUERY_KEY,
+      });
+    },
+  });
+
+  // Todo の削除 (Delete)
+  const deleteMutation = useMutation({
+    mutationFn: (todo_id: number) => todoApi.delete(todo_id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: TODOS_QUERY_KEY,
+      });
+    },
+  });
+
+  // ラッパー関数（既存のインターフェース・戻り値に合わせる）
 
   const addTodo = async (title: string, description?: string) => {
-    try {
-      const created = await todoApi.create({ title, description });
-      setTodos((prev) => [created, ...prev]);
-    } catch {
-      setError("failed to create Todo");
-    }
+    await createMutation.mutateAsync({ title, description });
   };
 
   const updateTodo = async (todo_id: number, fields: TodoUpdateInput) => {
-    try {
-      const updated = await todoApi.update(todo_id, fields);
-      setTodos((prev) => prev.map((t) => (t.id === todo_id ? updated : t)));
-    } catch {
-      setError("failed to update Todo");
-    }
+    await updateMutation.mutateAsync({ todo_id, fields });
   };
 
   const toggleTodo = async (todo_id: number) => {
@@ -46,18 +68,21 @@ export const useTodos = () => {
   };
 
   const deleteTodo = async (todo_id: number) => {
-    try {
-      await todoApi.delete(todo_id);
-      setTodos((prev) => prev.filter((t) => t.id !== todo_id));
-    } catch {
-      setError("failed to delete Todo");
-    }
+    await deleteMutation.mutateAsync(todo_id);
   };
+
+  // エラーメッセージの文字列抽出（必要に応じて整形）
+  const errorMessage =
+    queryError instanceof Error
+      ? queryError.message
+      : queryError
+      ? "failed to fetch Todos"
+      : null;
 
   return {
     todos,
     isLoading,
-    error,
+    error: errorMessage,
     addTodo,
     updateTodo,
     toggleTodo,
