@@ -21,12 +21,7 @@ type TodoItemProps = {
   onDelete: (id: number) => Promise<void>;
 };
 
-export const TodoItem = ({
-  todo,
-  onToggle,
-  onUpdate,
-  onDelete,
-}: TodoItemProps) => {
+export const TodoItem = ({ todo, onToggle, onUpdate, onDelete }: TodoItemProps) => {
   const [editTitle, setEditTitle] = useState(todo.title);
   const [editDesc, setEditDesc] = useState(todo.description || "");
   const [isUpdating, setIsUpdating] = useState(false);

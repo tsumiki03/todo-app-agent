@@ -15,15 +15,7 @@ import { TodoInput } from "./TodoInput";
 import { TodoItem } from "./TodoItem";
 
 export const TodoApp = () => {
-  const {
-    todos,
-    isLoading,
-    error,
-    addTodo,
-    updateTodo,
-    toggleTodo,
-    deleteTodo,
-  } = useTodos();
+  const { todos, isLoading, error, addTodo, updateTodo, toggleTodo, deleteTodo } = useTodos();
 
   // ローディング画面
   if (isLoading) {

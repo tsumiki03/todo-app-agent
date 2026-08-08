@@ -2,11 +2,7 @@ import { http, HttpResponse } from "msw";
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
 
-import type {
-  Todo,
-  TodoCreateInput,
-  TodoUpdateInput,
-} from "../features/todo/types";
+import type { Todo, TodoCreateInput, TodoUpdateInput } from "../features/todo/types";
 
 const INITIAL_TODOS: Todo[] = [
   {

@@ -18,8 +18,7 @@ export const TodoInput = ({ onAdd }: TodoInputProps) => {
     },
     validate: {
       // タイトルが空欄（または空白のみ）の場合はエラーメッセージを返す
-      title: (value) =>
-        value.trim().length === 0 ? "タイトルを入力してください" : null,
+      title: (value) => (value.trim().length === 0 ? "タイトルを入力してください" : null),
     },
     transformValues: (values) => ({
       title: values.title.trim(),
@@ -32,10 +31,7 @@ export const TodoInput = ({ onAdd }: TodoInputProps) => {
 
     try {
       setIsSubmitting(true);
-      await onAdd(
-        values.title,
-        values.description !== "" ? values.description : undefined
-      );
+      await onAdd(values.title, values.description !== "" ? values.description : undefined);
       // 送信成功後にフォームを初期化
       form.reset();
     } finally {

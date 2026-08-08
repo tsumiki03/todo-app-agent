@@ -73,11 +73,7 @@ export const useTodos = () => {
 
   // エラーメッセージの文字列抽出（必要に応じて整形）
   const errorMessage =
-    queryError instanceof Error
-      ? queryError.message
-      : queryError
-      ? "failed to fetch Todos"
-      : null;
+    queryError instanceof Error ? queryError.message : queryError ? "failed to fetch Todos" : null;
 
   return {
     todos,
