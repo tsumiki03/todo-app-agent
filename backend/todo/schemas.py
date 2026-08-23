@@ -23,3 +23,12 @@ class TodoUpdateSchema(Schema):
     title: str | None = Field(None, min_length=1, max_length=200)
     description: str | None = None
     is_done: bool | None = None
+
+
+class SubtaskProposalSchema(Schema):
+    title: str = Field(..., description="サブタスクのタイトル")
+    description: str = Field("", description="サブタスクの補足説明")
+
+
+class TodoBreakdownResponseSchema(Schema):
+    subtasks: list[SubtaskProposalSchema] = Field(..., description="サブタスクのリスト")

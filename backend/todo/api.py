@@ -1,7 +1,14 @@
 from ninja import Router
-from .models import Todo
-from .schemas import HealthCheckSchema, TodoSchema, TodoCreateSchema, TodoUpdateSchema
 from django.shortcuts import get_object_or_404
+from .models import Todo
+from .schemas import (
+    HealthCheckSchema,
+    TodoSchema,
+    TodoCreateSchema,
+    TodoUpdateSchema,
+    TodoBreakdownResponseSchema,
+)
+from .services import generate_subtask_proposals
 
 router = Router()
 
@@ -37,3 +44,17 @@ def delete_todo(request, todo_id: int):
     todo = get_object_or_404(Todo, id=todo_id)
     todo.delete()
     return {"success": True}
+
+
+@router.post("/{todo_id}/breakdown", response=TodoBreakdownResponseSchema)
+def breakdown_todo(request, todo_id: int):
+    """指定された Todo を AI でサブタスクに分解し、提案リストを返す。"""
+    todo = get_object_or_404(Todo, id=todo_id)
+
+    result = generate_subtask_proposals(
+        title=todo.title,
+        description=todo.description,
+        created_at=todo.created_at,
+    )
+
+    return result
