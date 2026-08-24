@@ -8,6 +8,7 @@ class HealthCheckSchema(Schema):
 
 class TodoSchema(Schema):
     id: int
+    parent_id: int | None = None
     title: str
     description: str
     is_done: bool
