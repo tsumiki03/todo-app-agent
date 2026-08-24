@@ -362,7 +362,7 @@ class SubtaskBatchPostApiTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         data = response.json()
-        
+
         # レスポンスがリスト型であること
         self.assertIsInstance(data, list)
         self.assertEqual(len(data), 2)
@@ -379,15 +379,15 @@ class SubtaskBatchPostApiTests(TestCase):
         self.assertEqual(data[0]["parent_id"], self.parent_todo.id)
         self.assertEqual(data[0]["title"], "サブタスク1")
         self.assertEqual(data[0]["description"], "説明1")
-        self.assertEqual(first_subtask.user_id, "user_123")  # 親の user_id が継承されていること
+        self.assertEqual(
+            first_subtask.user_id, "user_123"
+        )  # 親の user_id が継承されていること
 
     def test_success_create_subtask_max_length_title(self):
         """サブタスクのタイトルが200文字（上限ちょうど）でも登録が成功すること"""
         max_length_title = "a" * 200
         payload = {
-            "subtasks": [
-                {"title": max_length_title, "description": "境界値テスト"}
-            ]
+            "subtasks": [{"title": max_length_title, "description": "境界値テスト"}]
         }
         url = f"/{self.parent_todo.id}/subtasks"
         response = self.ninja_client.post(url, json=payload)
@@ -416,11 +416,7 @@ class SubtaskBatchPostApiTests(TestCase):
     def test_fail_create_subtasks_long_title(self):
         """サブタスクのタイトルが201文字（上限超過）の場合、422エラーとなり1件もDBに登録されないこと"""
         long_title = "a" * 201
-        payload = {
-            "subtasks": [
-                {"title": long_title, "description": "タイトル長すぎ"}
-            ]
-        }
+        payload = {"subtasks": [{"title": long_title, "description": "タイトル長すぎ"}]}
         url = f"/{self.parent_todo.id}/subtasks"
         response = self.ninja_client.post(url, json=payload)
 
@@ -439,11 +435,7 @@ class SubtaskBatchPostApiTests(TestCase):
     def test_fail_create_subtasks_parent_not_found(self):
         """存在しない親 todo_id を指定した場合、404エラーが返ること"""
         invalid_parent_id = 999999
-        payload = {
-            "subtasks": [
-                {"title": "サブタスク1", "description": "説明"}
-            ]
-        }
+        payload = {"subtasks": [{"title": "サブタスク1", "description": "説明"}]}
         url = f"/{invalid_parent_id}/subtasks"
         response = self.ninja_client.post(url, json=payload)
 

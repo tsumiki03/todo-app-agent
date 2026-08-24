@@ -64,7 +64,7 @@ def breakdown_todo(request, todo_id: int):
 
 @router.post("/{todo_id}/subtasks", response=list[TodoSchema])
 def create_subtasks_batch(request, todo_id: int, payload: SubtaskBatchCreateSchema):
-    """ 指定された親 Todo (todo_id) に対して、サブタスク群を一括登録する。"""
+    """指定された親 Todo (todo_id) に対して、サブタスク群を一括登録する。"""
     parent_todo = get_object_or_404(Todo, id=todo_id)
 
     new_subtasks = [
