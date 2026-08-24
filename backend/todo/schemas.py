@@ -27,9 +27,13 @@ class TodoUpdateSchema(Schema):
 
 
 class SubtaskProposalSchema(Schema):
-    title: str = Field(..., description="サブタスクのタイトル")
+    title: str = Field(..., min_length=1, max_length=200, description="サブタスクのタイトル")
     description: str = Field("", description="サブタスクの補足説明")
 
 
 class TodoBreakdownResponseSchema(Schema):
     subtasks: list[SubtaskProposalSchema] = Field(..., description="サブタスクのリスト")
+
+
+class SubtaskBatchCreateSchema(Schema):
+    subtasks: list[SubtaskProposalSchema] = Field(..., min_length=1, description="一括登録するサブタスクのリスト")

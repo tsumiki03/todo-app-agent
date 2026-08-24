@@ -1,8 +1,10 @@
 from ninja import Router
+from django.db import transaction
 from django.shortcuts import get_object_or_404
 from .models import Todo
 from .schemas import (
     HealthCheckSchema,
+    SubtaskBatchCreateSchema,
     TodoSchema,
     TodoCreateSchema,
     TodoUpdateSchema,
@@ -58,3 +60,25 @@ def breakdown_todo(request, todo_id: int):
     )
 
     return result
+
+
+@router.post("/{todo_id}/subtasks", response=list[TodoSchema])
+def create_subtasks_batch(request, todo_id: int, payload: SubtaskBatchCreateSchema):
+    """ 指定された親 Todo (todo_id) に対して、サブタスク群を一括登録する。"""
+    parent_todo = get_object_or_404(Todo, id=todo_id)
+
+    new_subtasks = [
+        Todo(
+            parent=parent_todo,
+            user_id=parent_todo.user_id,
+            title=item.title,
+            description=item.description,
+            is_done=False,
+        )
+        for item in payload.subtasks
+    ]
+
+    with transaction.atomic():
+        created_subtasks = Todo.objects.bulk_create(new_subtasks)
+
+    return created_subtasks
