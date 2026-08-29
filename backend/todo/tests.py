@@ -441,3 +441,95 @@ class SubtaskBatchPostApiTests(TestCase):
 
         self.assertEqual(response.status_code, 404)
         self.assertEqual(Todo.objects.count(), 1)
+
+
+class TodoTreeGetApiTests(TestCase):
+    def setUp(self):
+        self.ninja_client = TestClient(router)
+
+    def test_get_todo_tree_empty(self):
+        """データが0件の場合空のリストが返ること"""
+        response = self.ninja_client.get("/tree")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), [])
+
+    def test_get_todo_tree_single_without_subtasks(self):
+        """サブタスクを持たない親タスクが1件のみ存在する場合、subtasksが空配列で返ること"""
+        parent_todo = Todo.objects.create(
+            user_id="mock-user-123", title="親タスクのみ", description="テスト説明"
+        )
+
+        response = self.ninja_client.get("/tree")
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]["id"], parent_todo.id)
+        self.assertEqual(data[0]["title"], "親タスクのみ")
+        self.assertEqual(data[0]["description"], "テスト説明")
+        self.assertFalse(data[0]["is_done"])
+        self.assertIn("created_at", data[0])
+        self.assertEqual(data[0]["subtasks"], [])
+
+    def test_get_todo_tree_with_subtasks(self):
+        """親タスクとサブタスクが存在する場合、サブタスクが親の中にネストされトップレベルには親のみ返ること"""
+        parent_todo = Todo.objects.create(
+            user_id="mock-user-123", title="親タスク", description="親の説明"
+        )
+        subtask1 = Todo.objects.create(
+            user_id="mock-user-123",
+            title="サブタスク1",
+            description="サブ説明1",
+            parent=parent_todo,
+        )
+        subtask2 = Todo.objects.create(
+            user_id="mock-user-123",
+            title="サブタスク2",
+            description="サブ説明2",
+            parent=parent_todo,
+        )
+
+        response = self.ninja_client.get("/tree")
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+
+        # トップレベルの件数は親タスクの 1 件のみであること
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]["id"], parent_todo.id)
+
+        # subtasks フィールドに 2 件のサブタスクがネストされていること
+        subtasks_data = data[0]["subtasks"]
+        self.assertEqual(len(subtasks_data), 2)
+
+        self.assertEqual(subtasks_data[0]["id"], subtask1.id)
+        self.assertEqual(subtasks_data[0]["parent_id"], parent_todo.id)
+        self.assertEqual(subtasks_data[0]["title"], "サブタスク1")
+        self.assertEqual(subtasks_data[0]["description"], "サブ説明1")
+
+        self.assertEqual(subtasks_data[1]["id"], subtask2.id)
+        self.assertEqual(subtasks_data[1]["parent_id"], parent_todo.id)
+        self.assertEqual(subtasks_data[1]["title"], "サブタスク2")
+
+    def test_get_todo_tree_ordering(self):
+        """複数件の親タスクが存在する場合、作成日時 (created_at) の降順で並んでいること"""
+        parent_old = Todo.objects.create(user_id="mock-user-123", title="古い親タスク")
+        parent_new = Todo.objects.create(user_id="mock-user-123", title="新しい親タスク")
+
+        # 古い親タスクにサブタスクを紐付け（親の並び順に影響がないことを確認）
+        Todo.objects.create(
+            user_id="mock-user-123", title="古い親のサブタスク", parent=parent_old
+        )
+
+        response = self.ninja_client.get("/tree")
+
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+
+        # トップレベルは作成日降順で新しい親タスクが先頭に来ること
+        self.assertEqual(len(data), 2)
+        self.assertEqual(data[0]["id"], parent_new.id)
+        self.assertEqual(data[1]["id"], parent_old.id)
+        self.assertEqual(len(data[1]["subtasks"]), 1)

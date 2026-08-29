@@ -41,3 +41,22 @@ class SubtaskBatchCreateSchema(Schema):
     subtasks: list[SubtaskProposalSchema] = Field(
         ..., min_length=1, description="一括登録するサブタスクのリスト"
     )
+
+
+class SubtaskSchema(Schema):
+    id: int
+    parent_id: int
+    title: str
+    description: str
+    is_done: bool
+    created_at: datetime
+
+
+class TodoTreeSchema:
+    id: int
+    title: str
+    description: str
+    is_done: bool
+    created_at: datetime
+    subtasks: list[SubtaskSchema] = []
+
