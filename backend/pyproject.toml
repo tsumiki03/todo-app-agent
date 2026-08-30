@@ -9,6 +9,9 @@ dependencies = [
     "django-cors-headers>=4.9.0",
     "django-environ>=0.13.0",
     "django-ninja>=1.6.2",
+    "pydantic>=2.13.3",
+    "strands-agents-tools>=0.8.6",
+    "strands-agents[gemini]>=1.52.0",
 ]
 
 [dependency-groups]

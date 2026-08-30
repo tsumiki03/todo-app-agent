@@ -8,6 +8,7 @@ class HealthCheckSchema(Schema):
 
 class TodoSchema(Schema):
     id: int
+    parent_id: int | None = None
     title: str
     description: str
     is_done: bool
@@ -23,3 +24,38 @@ class TodoUpdateSchema(Schema):
     title: str | None = Field(None, min_length=1, max_length=200)
     description: str | None = None
     is_done: bool | None = None
+
+
+class SubtaskProposalSchema(Schema):
+    title: str = Field(
+        ..., min_length=1, max_length=200, description="サブタスクのタイトル"
+    )
+    description: str = Field("", description="サブタスクの補足説明")
+
+
+class TodoBreakdownResponseSchema(Schema):
+    subtasks: list[SubtaskProposalSchema] = Field(..., description="サブタスクのリスト")
+
+
+class SubtaskBatchCreateSchema(Schema):
+    subtasks: list[SubtaskProposalSchema] = Field(
+        ..., min_length=1, description="一括登録するサブタスクのリスト"
+    )
+
+
+class SubtaskSchema(Schema):
+    id: int
+    parent_id: int
+    title: str
+    description: str
+    is_done: bool
+    created_at: datetime
+
+
+class TodoTreeSchema(Schema):
+    id: int
+    title: str
+    description: str
+    is_done: bool
+    created_at: datetime
+    subtasks: list[SubtaskSchema] = []
