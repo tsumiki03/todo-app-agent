@@ -52,7 +52,7 @@ class SubtaskSchema(Schema):
     created_at: datetime
 
 
-class TodoTreeSchema:
+class TodoTreeSchema(Schema):
     id: int
     title: str
     description: str
