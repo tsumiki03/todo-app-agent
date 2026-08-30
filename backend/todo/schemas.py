@@ -59,4 +59,3 @@ class TodoTreeSchema(Schema):
     is_done: bool
     created_at: datetime
     subtasks: list[SubtaskSchema] = []
-

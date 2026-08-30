@@ -516,7 +516,9 @@ class TodoTreeGetApiTests(TestCase):
     def test_get_todo_tree_ordering(self):
         """複数件の親タスクが存在する場合、作成日時 (created_at) の降順で並んでいること"""
         parent_old = Todo.objects.create(user_id="mock-user-123", title="古い親タスク")
-        parent_new = Todo.objects.create(user_id="mock-user-123", title="新しい親タスク")
+        parent_new = Todo.objects.create(
+            user_id="mock-user-123", title="新しい親タスク"
+        )
 
         # 古い親タスクにサブタスクを紐付け（親の並び順に影響がないことを確認）
         Todo.objects.create(
