@@ -7,6 +7,7 @@ from .schemas import (
     SubtaskBatchCreateSchema,
     TodoSchema,
     TodoCreateSchema,
+    TodoTreeSchema,
     TodoUpdateSchema,
     TodoBreakdownResponseSchema,
 )
@@ -23,6 +24,16 @@ def health_check(request):
 @router.get("/", response=list[TodoSchema])
 def get_todos(request):
     return list(Todo.objects.all().order_by("-created_at"))
+
+
+@router.get("/tree", response=list[TodoTreeSchema])
+def list_todo_tree(request):
+    """親タスクのみを取得し、配下のサブタスクを含めたネスト構造で返す。"""
+    return (
+        Todo.objects.filter(parent__isnull=True)
+        .prefetch_related("subtasks")
+        .order_by("-created_at")
+    )
 
 
 @router.post("/", response=TodoSchema)
