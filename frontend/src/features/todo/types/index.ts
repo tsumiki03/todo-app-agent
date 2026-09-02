@@ -1,19 +1,13 @@
-export type Subtask = {
+export type Todo = {
   id: number;
-  parent_id: number;
+  parent_id: number | null;
   title: string;
   description: string;
   is_done: boolean;
   created_at: string;
 };
 
-export type Todo = {
-  id: number;
-  title: string;
-  description: string;
-  is_done: boolean;
-  created_at: string;
-};
+export type Subtask = Todo;
 
 export type TodoTree = Todo & {
   subtasks: Subtask[];
