@@ -32,8 +32,12 @@ const INITIAL_TODOS: Todo[] = [
 // 初期データとオブジェクトを共有しないよう、各 Todo もコピーする
 export let mockTodos: Todo[] = INITIAL_TODOS.map((todo) => ({ ...todo }));
 
+// 初期データの最大 ID の次から採番する
+let nextId = Math.max(0, ...INITIAL_TODOS.map((todo) => todo.id)) + 1;
+
 export const resetMockTodos = () => {
   mockTodos = INITIAL_TODOS.map((todo) => ({ ...todo }));
+  nextId = Math.max(0, ...INITIAL_TODOS.map((todo) => todo.id)) + 1;
 };
 
 export const handlers = [
@@ -54,13 +58,16 @@ export const handlers = [
     console.log("MSW: Intercepted POST /api/todo/");
     const nextTodo = (await request.json()) as TodoCreateInput;
     const newTodo: Todo = {
-      id: Math.max(...mockTodos.map((t) => t.id)) + 1,
+      id: nextId,
       parent_id: null,
       title: nextTodo.title,
       description: nextTodo.description ?? "",
       is_done: false,
       created_at: new Date().toISOString(),
     };
+    // 次の作成で使う ID に進める
+    nextId = nextId + 1;
+
     mockTodos.unshift(newTodo);
     return HttpResponse.json(newTodo, { status: 200 });
   }),
