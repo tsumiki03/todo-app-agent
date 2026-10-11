@@ -51,6 +51,7 @@ export const handlers = [
     const nextTodo = (await request.json()) as TodoCreateInput;
     const newTodo: Todo = {
       id: Math.max(...mockTodos.map((t) => t.id)) + 1,
+      parent_id: null,
       title: nextTodo.title,
       description: nextTodo.description ?? "",
       is_done: false,
