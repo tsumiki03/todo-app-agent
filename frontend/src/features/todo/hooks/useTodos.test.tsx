@@ -1,6 +1,6 @@
 import { renderHook, waitFor, act } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { describe, test, expect, beforeEach } from "vitest";
+import { describe, test, expect, beforeEach, afterEach, vi } from "vitest";
 import type { ReactNode } from "react";
 import { useTodos } from "./useTodos";
 import { resetMockTodos } from "../../../mocks/handlers";
@@ -32,6 +32,10 @@ describe("useTodos (TanStack Query)", () => {
     resetMockTodos();
   });
 
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   test("初期化時にTodo一覧を自動的に取得し、todosに格納されること", async () => {
     const { result } = renderHook(() => useTodos(), {
       wrapper: createWrapper(),
@@ -41,18 +45,25 @@ describe("useTodos (TanStack Query)", () => {
     expect(result.current.todos).toEqual([]);
 
     await waitFor(() => {
-      expect(result.current.todos.length).toBeGreaterThan(0);
+      expect(result.current.todos.map((todo) => todo.id)).toEqual([101, 1]);
     });
 
     expect(result.current.isLoading).toBe(false);
-    expect(result.current.todos[0]).toMatchObject({
+    expect(result.current.todos.find((todo) => todo.id === 1)).toMatchObject({
       id: 1,
+      parent_id: null,
       title: "Learn MSW",
       is_done: false,
     });
   });
 
   test("addTodo を呼び出すと、新しいTodoが先頭に追加されること", async () => {
+    // 実行日に左右されず、新規 Todo が初期データより新しくなる日時に固定する
+    const createdAt = "2026-01-02T00:00:00.000Z";
+    // Date だけを固定し、waitFor などが使うタイマーは実時間で動かす
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(createdAt));
+
     const { result } = renderHook(() => useTodos(), {
       wrapper: createWrapper(),
     });
@@ -64,18 +75,18 @@ describe("useTodos (TanStack Query)", () => {
     });
 
     await waitFor(() => {
-      expect(result.current.todos.length).toBe(2);
+      expect(result.current.todos.length).toBe(3);
     });
-
-    console.log("Current todos:", result.current.todos);
 
     expect(result.current.todos[0]).toMatchObject({
       title: "New Task",
+      parent_id: null,
       description: "Description",
       is_done: false,
+      created_at: createdAt,
     });
 
-    expect(result.current.todos[1].id).toBe(1);
+    expect(result.current.todos.slice(1).map((todo) => todo.id)).toEqual([101, 1]);
   });
 
   test("toggleTodo を呼び出すと、指定したTodoの is_done が反転すること", async () => {
@@ -85,15 +96,16 @@ describe("useTodos (TanStack Query)", () => {
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    expect(result.current.todos[0].is_done).toBe(false);
+    expect(result.current.todos.find((todo) => todo.id === 1)?.is_done).toBe(false);
 
     await act(async () => {
       await result.current.toggleTodo(1);
     });
 
     await waitFor(() => {
-      expect(result.current.todos[0].is_done).toBe(true);
+      expect(result.current.todos.find((todo) => todo.id === 1)?.is_done).toBe(true);
     });
+    expect(result.current.todos.find((todo) => todo.id === 101)?.is_done).toBe(false);
   });
 
   test("updateTodo を呼び出すと、指定したフィールドのみが更新されること", async () => {
@@ -113,7 +125,7 @@ describe("useTodos (TanStack Query)", () => {
     });
 
     await waitFor(() => {
-      expect(result.current.todos[0]).toMatchObject({
+      expect(result.current.todos.find((todo) => todo.id === 1)).toMatchObject({
         id: 1,
         title: "Edited Title",
         description: "Edited Description",
@@ -122,7 +134,7 @@ describe("useTodos (TanStack Query)", () => {
     });
   });
 
-  test("deleteTodo を呼び出すと、指定したTodoが配列から除外されること", async () => {
+  test("deleteTodo で親Todoを削除すると、再取得後の一覧から子Todoも除外されること", async () => {
     const { result } = renderHook(() => useTodos(), {
       wrapper: createWrapper(),
     });
