@@ -95,7 +95,23 @@ export const handlers = [
       return new HttpResponse(null, { status: 404 });
     }
 
-    mockTodos.splice(targetIndex, 1);
+    // 削除対象の Todo と、その子孫の ID を集める
+    const idsToDelete = new Set<number>([Number(todo_id)]);
+    const pendingIds = [Number(todo_id)];
+
+    while (pendingIds.length > 0) {
+      const parentId = pendingIds.pop()!;
+
+      for (const todo of mockTodos) {
+        if (todo.parent_id === parentId && !idsToDelete.has(todo.id)) {
+          idsToDelete.add(todo.id);
+          pendingIds.push(todo.id);
+        }
+      }
+    }
+
+    // 集めた ID に該当する Todo をまとめて削除する
+    mockTodos = mockTodos.filter((todo) => !idsToDelete.has(todo.id));
     return HttpResponse.json({ success: true }, { status: 200 });
   }),
 ];
