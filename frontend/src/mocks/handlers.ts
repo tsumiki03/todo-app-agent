@@ -29,10 +29,11 @@ const INITIAL_TODOS: Todo[] = [
   },
 ];
 
-export let mockTodos: Todo[] = [...INITIAL_TODOS];
+// 初期データとオブジェクトを共有しないよう、各 Todo もコピーする
+export let mockTodos: Todo[] = INITIAL_TODOS.map((todo) => ({ ...todo }));
 
 export const resetMockTodos = () => {
-  mockTodos = [...INITIAL_TODOS];
+  mockTodos = INITIAL_TODOS.map((todo) => ({ ...todo }));
 };
 
 export const handlers = [
