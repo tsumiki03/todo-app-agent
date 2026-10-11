@@ -2,15 +2,30 @@ import { http, HttpResponse } from "msw";
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
 
-import type { Todo, TodoCreateInput, TodoUpdateInput } from "../features/todo/types";
+import type { 
+    Todo, 
+    TodoCreateInput, 
+    TodoUpdateInput,
+    TodoTree,
+    SubtaskBatchCreateInput,
+} from "../features/todo/types";
 
 const INITIAL_TODOS: Todo[] = [
   {
     id: 1,
+    parent_id: null,
     title: "Learn MSW",
     description: "Read the docs",
     is_done: false,
     created_at: "2026-01-01T00:00:00Z",
+  },
+  {
+    id: 101,
+    parent_id: 1,
+    title: "Read setup guide",
+    description: "",
+    is_done: false,
+    created_at: "2026-01-01T01:00:00Z",
   },
 ];
 
