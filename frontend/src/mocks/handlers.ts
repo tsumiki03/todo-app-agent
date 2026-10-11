@@ -43,7 +43,10 @@ export const handlers = [
 
   http.get(`${BASE_URL}/api/todo/`, () => {
     console.log("MSW: Intercepted GET /api/todo/");
-    return HttpResponse.json(mockTodos);
+    const sortedTodos = [...mockTodos].sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+    );
+    return HttpResponse.json(sortedTodos);
   }),
 
   http.post(`${BASE_URL}/api/todo/`, async ({ request }) => {
