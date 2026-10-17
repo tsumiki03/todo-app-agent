@@ -2,13 +2,13 @@ import { http, HttpResponse } from "msw";
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
 
-import type { 
-    Todo, 
-    TodoCreateInput, 
-    TodoUpdateInput,
-    TodoBreakdownResponse,
-    TodoTree,
-    SubtaskBatchCreateInput,
+import type {
+  Todo,
+  TodoCreateInput,
+  TodoUpdateInput,
+  TodoBreakdownResponse,
+  TodoTree,
+  SubtaskBatchCreateInput,
 } from "../features/todo/types";
 
 const INITIAL_TODOS: Todo[] = [
@@ -61,9 +61,7 @@ export const handlers = [
     // 親だけを抽出し、作成日時の降順に並べる
     const parentTodos = mockTodos
       .filter((todo) => todo.parent_id === null)
-      .sort(
-        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-      );
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
     // 各親をレスポンスの形に変換する（親の parent_id は含めない）
     const todoTrees: TodoTree[] = parentTodos.map((parent) => ({

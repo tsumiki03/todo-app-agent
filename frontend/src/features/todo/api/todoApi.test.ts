@@ -256,9 +256,7 @@ describe("todoApi", () => {
     test("空配列の場合、422エラーとなり保存データが変わらないこと", async () => {
       const beforeTodos = await todoApi.getAll();
 
-      await expect(
-        todoApi.createSubtasks(1, { subtasks: [] }),
-      ).rejects.toMatchObject({
+      await expect(todoApi.createSubtasks(1, { subtasks: [] })).rejects.toMatchObject({
         response: { status: 422 },
       });
 
@@ -268,26 +266,23 @@ describe("todoApi", () => {
     test.each([
       ["空文字", ""],
       ["201文字", "a".repeat(201)],
-    ])(
-      "タイトルが%sの場合、422エラーとなり全件保存されないこと",
-      async (_, title) => {
-        const beforeTodos = await todoApi.getAll();
+    ])("タイトルが%sの場合、422エラーとなり全件保存されないこと", async (_, title) => {
+      const beforeTodos = await todoApi.getAll();
 
-        // 正常な項目が先にあっても、途中まで保存されないことを確認する
-        await expect(
-          todoApi.createSubtasks(1, {
-            subtasks: [
-              { title: "正常なサブタスク", description: "" },
-              { title, description: "" },
-            ],
-          }),
-        ).rejects.toMatchObject({
-          response: { status: 422 },
-        });
+      // 正常な項目が先にあっても、途中まで保存されないことを確認する
+      await expect(
+        todoApi.createSubtasks(1, {
+          subtasks: [
+            { title: "正常なサブタスク", description: "" },
+            { title, description: "" },
+          ],
+        }),
+      ).rejects.toMatchObject({
+        response: { status: 422 },
+      });
 
-        expect(await todoApi.getAll()).toEqual(beforeTodos);
-      },
-    );
+      expect(await todoApi.getAll()).toEqual(beforeTodos);
+    });
   });
 
   describe("resetMockTodos", () => {
