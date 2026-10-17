@@ -153,6 +153,83 @@ describe("todoApi", () => {
     });
   });
 
+  describe("createSubtasks", () => {
+    test("指定したTodoにサブタスクを一括登録できること", async () => {
+      const input = {
+        subtasks: [
+          { title: "サブタスク1", description: "説明1" },
+          { title: "サブタスク2", description: "説明2" },
+        ],
+      };
+
+      const created = await todoApi.createSubtasks(1, input);
+
+      expect(created).toHaveLength(2);
+      created.forEach((todo, index) => {
+        expect(todo).toMatchObject({
+          parent_id: 1,
+          title: input.subtasks[index].title,
+          description: input.subtasks[index].description,
+          is_done: false,
+        });
+        expect(todo.id).toBeDefined();
+        expect(todo.created_at).toBeDefined();
+      });
+      expect(created[1].id).toBe(created[0].id + 1);
+
+      const todos = await todoApi.getAll();
+      expect(todos).toHaveLength(4);
+      expect(todos).toEqual(expect.arrayContaining(created));
+      expect(todos.map((todo) => todo.id)).toEqual(expect.arrayContaining([1, 101]));
+    });
+
+    test("存在しない親IDを指定した場合、404エラーが発生すること", async () => {
+      await expect(
+        todoApi.createSubtasks(999, {
+          subtasks: [{ title: "サブタスク", description: "" }],
+        }),
+      ).rejects.toMatchObject({
+        response: { status: 404 },
+      });
+    });
+
+    test("空配列の場合、422エラーとなり保存データが変わらないこと", async () => {
+      const beforeTodos = await todoApi.getAll();
+
+      await expect(
+        todoApi.createSubtasks(1, { subtasks: [] }),
+      ).rejects.toMatchObject({
+        response: { status: 422 },
+      });
+
+      expect(await todoApi.getAll()).toEqual(beforeTodos);
+    });
+
+    test.each([
+      ["空文字", ""],
+      ["201文字", "a".repeat(201)],
+    ])(
+      "タイトルが%sの場合、422エラーとなり全件保存されないこと",
+      async (_, title) => {
+        const beforeTodos = await todoApi.getAll();
+
+        // 正常な項目が先にあっても、途中まで保存されないことを確認する
+        await expect(
+          todoApi.createSubtasks(1, {
+            subtasks: [
+              { title: "正常なサブタスク", description: "" },
+              { title, description: "" },
+            ],
+          }),
+        ).rejects.toMatchObject({
+          response: { status: 422 },
+        });
+
+        expect(await todoApi.getAll()).toEqual(beforeTodos);
+      },
+    );
+  });
+
   describe("resetMockTodos", () => {
     test("リセットすると採番が初期値に戻ること", async () => {
       const firstTodo = await todoApi.create({ title: "Before Reset" });
