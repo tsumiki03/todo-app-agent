@@ -126,6 +126,33 @@ describe("todoApi", () => {
     });
   });
 
+  describe("breakdown", () => {
+    test("指定したTodoのサブタスク提案を取得できること", async () => {
+      const result = await todoApi.breakdown(1);
+
+      expect(result.subtasks).toHaveLength(3);
+      expect(result.subtasks[0]).toMatchObject({
+        title: "必要な情報を整理する",
+        description: "タスクの目的と完了条件を確認",
+      });
+    });
+
+    test("存在しないIDを指定した場合、404エラーが発生すること", async () => {
+      await expect(todoApi.breakdown(999)).rejects.toMatchObject({
+        response: { status: 404 },
+      });
+    });
+
+    test("提案を取得しても保存済みのTodoが変更されないこと", async () => {
+      const beforeTodos = await todoApi.getAll();
+
+      await todoApi.breakdown(1);
+
+      const afterTodos = await todoApi.getAll();
+      expect(afterTodos).toEqual(beforeTodos);
+    });
+  });
+
   describe("resetMockTodos", () => {
     test("リセットすると採番が初期値に戻ること", async () => {
       const firstTodo = await todoApi.create({ title: "Before Reset" });
