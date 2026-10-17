@@ -55,6 +55,35 @@ export const handlers = [
     return HttpResponse.json(sortedTodos);
   }),
 
+  http.get(`${BASE_URL}/api/todo/tree`, () => {
+    console.log("MSW: Intercepted GET /api/todo/tree");
+
+    // 親だけを抽出し、作成日時の降順に並べる
+    const parentTodos = mockTodos
+      .filter((todo) => todo.parent_id === null)
+      .sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+      );
+
+    // 各親をレスポンスの形に変換する（親の parent_id は含めない）
+    const todoTrees: TodoTree[] = parentTodos.map((parent) => ({
+      id: parent.id,
+      title: parent.title,
+      description: parent.description,
+      is_done: parent.is_done,
+      created_at: parent.created_at,
+      // この親に直接紐づく子だけを集める
+      subtasks: mockTodos
+        .filter((todo) => todo.parent_id === parent.id)
+        .map((todo) => ({
+          ...todo,
+          parent_id: parent.id,
+        })),
+    }));
+
+    return HttpResponse.json(todoTrees);
+  }),
+
   http.post(`${BASE_URL}/api/todo/`, async ({ request }) => {
     console.log("MSW: Intercepted POST /api/todo/");
     const nextTodo = (await request.json()) as TodoCreateInput;
