@@ -24,6 +24,66 @@ describe("todoApi", () => {
     });
   });
 
+  describe("getTree", () => {
+    test("親Todoの配下にサブタスクを含めて取得できること", async () => {
+      const trees = await todoApi.getTree();
+
+      expect(trees).toHaveLength(1);
+      expect(trees[0]).toMatchObject({
+        id: 1,
+        title: "Learn MSW",
+        description: "Read the docs",
+        is_done: false,
+        created_at: "2026-01-01T00:00:00Z",
+      });
+      expect(trees[0]).not.toHaveProperty("parent_id");
+
+      expect(trees[0].subtasks).toHaveLength(1);
+      expect(trees[0].subtasks[0]).toMatchObject({
+        id: 101,
+        parent_id: 1,
+        title: "Read setup guide",
+        description: "",
+        is_done: false,
+        created_at: "2026-01-01T01:00:00Z",
+      });
+    });
+
+    test("子がない親Todoはsubtasksが空配列になること", async () => {
+      await todoApi.delete(101);
+
+      const trees = await todoApi.getTree();
+
+      expect(trees).toHaveLength(1);
+      expect(trees[0]).toMatchObject({
+        id: 1,
+        subtasks: [],
+      });
+    });
+
+    test("Todoが0件の場合は空配列を取得できること", async () => {
+      await todoApi.delete(1);
+
+      expect(await todoApi.getTree()).toEqual([]);
+    });
+
+    test("親Todoを作成日時の降順で取得できること", async () => {
+      // 並び順を検証するため、日時を固定した親を追加する
+      mockTodos.push({
+        id: 2,
+        parent_id: null,
+        title: "新しい親タスク",
+        description: "",
+        is_done: false,
+        created_at: "2026-01-02T00:00:00Z",
+      });
+
+      const trees = await todoApi.getTree();
+
+      expect(trees.map((todo) => todo.id)).toEqual([2, 1]);
+    });
+  });
+
   describe("create", () => {
     test("Todoを新規作成できること", async () => {
       const newInput = {
