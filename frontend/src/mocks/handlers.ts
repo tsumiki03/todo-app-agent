@@ -104,6 +104,61 @@ export const handlers = [
     return HttpResponse.json(response, { status: 200 });
   }),
 
+  http.post(`${BASE_URL}/api/todo/:todo_id/subtasks`, async ({ request, params }) => {
+    const { todo_id } = params;
+    console.log(`MSW: Intercepted POST /api/todo/${todo_id}/subtasks`);
+    const data: unknown = await request.json();
+
+    // 全件の検証が終わるまで、保存データと採番を変更しない
+    if (
+      typeof data !== "object" ||
+      data === null ||
+      !("subtasks" in data) ||
+      !Array.isArray(data.subtasks) ||
+      data.subtasks.length === 0 ||
+      data.subtasks.some(
+        (item: unknown) =>
+          typeof item !== "object" ||
+          item === null ||
+          !("title" in item) ||
+          typeof item.title !== "string" ||
+          Array.from(item.title).length < 1 ||
+          Array.from(item.title).length > 200 ||
+          ("description" in item && typeof item.description !== "string"),
+      )
+    ) {
+      return new HttpResponse(null, { status: 422 });
+    }
+
+    const parentTodo = mockTodos.find((todo) => todo.id === Number(todo_id));
+
+    if (!parentTodo) {
+      return new HttpResponse(null, { status: 404 });
+    }
+
+    const payload = data as SubtaskBatchCreateInput;
+    const createdSubtasks: Todo[] = [];
+
+    for (const item of payload.subtasks) {
+      const newSubtask: Todo = {
+        id: nextId,
+        parent_id: parentTodo.id,
+        title: item.title,
+        description: item.description ?? "",
+        is_done: false,
+        created_at: new Date().toISOString(),
+      };
+
+      nextId = nextId + 1;
+      createdSubtasks.push(newSubtask);
+    }
+
+    // 既存のサブタスクを残し、今回作成した分をまとめて追加する
+    mockTodos.push(...createdSubtasks);
+
+    return HttpResponse.json(createdSubtasks, { status: 200 });
+  }),
+
   http.put(`${BASE_URL}/api/todo/:todo_id`, async ({ request, params }) => {
     const { todo_id } = params;
     console.log(`MSW: Intercepted PUT /api/todo/${todo_id}`);
