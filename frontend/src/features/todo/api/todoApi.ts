@@ -4,6 +4,7 @@ import type {
   TodoCreateInput,
   TodoUpdateInput,
   TodoBreakdownResponse,
+  SubtaskBatchCreateInput,
 } from "../types";
 
 const API_BASE = "/api/todo";
@@ -31,6 +32,11 @@ export const todoApi = {
 
   breakdown: async (todo_id: number): Promise<TodoBreakdownResponse> => {
     const res = await api.post(`${API_BASE}/${todo_id}/breakdown`);
+    return res.data;
+  },
+
+  createSubtasks: async (todo_id: number, data: SubtaskBatchCreateInput): Promise<Todo[]> => {
+    const res = await api.post(`${API_BASE}/${todo_id}/subtasks`, data);
     return res.data;
   },
 };
