@@ -1,11 +1,23 @@
 import api from "../../../lib/axios";
-import type { Todo, TodoCreateInput, TodoUpdateInput } from "../types";
+import type {
+  Todo,
+  TodoCreateInput,
+  TodoUpdateInput,
+  TodoBreakdownResponse,
+  SubtaskBatchCreateInput,
+  TodoTree,
+} from "../types";
 
 const API_BASE = "/api/todo";
 
 export const todoApi = {
   getAll: async (): Promise<Todo[]> => {
     const res = await api.get(`${API_BASE}/`);
+    return res.data;
+  },
+
+  getTree: async (): Promise<TodoTree[]> => {
+    const res = await api.get(`${API_BASE}/tree`);
     return res.data;
   },
 
@@ -21,6 +33,16 @@ export const todoApi = {
 
   delete: async (todo_id: number): Promise<{ success: boolean }> => {
     const res = await api.delete(`${API_BASE}/${todo_id}`);
+    return res.data;
+  },
+
+  breakdown: async (todo_id: number): Promise<TodoBreakdownResponse> => {
+    const res = await api.post(`${API_BASE}/${todo_id}/breakdown`);
+    return res.data;
+  },
+
+  createSubtasks: async (todo_id: number, data: SubtaskBatchCreateInput): Promise<Todo[]> => {
+    const res = await api.post(`${API_BASE}/${todo_id}/subtasks`, data);
     return res.data;
   },
 };
