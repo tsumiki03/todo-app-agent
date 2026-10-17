@@ -6,6 +6,7 @@ import type {
     Todo, 
     TodoCreateInput, 
     TodoUpdateInput,
+    TodoBreakdownResponse,
     TodoTree,
     SubtaskBatchCreateInput,
 } from "../features/todo/types";
@@ -70,6 +71,37 @@ export const handlers = [
 
     mockTodos.unshift(newTodo);
     return HttpResponse.json(newTodo, { status: 200 });
+  }),
+
+  http.post(`${BASE_URL}/api/todo/:todo_id/breakdown`, ({ params }) => {
+    const { todo_id } = params;
+    console.log(`MSW: Intercepted POST /api/todo/${todo_id}/breakdown`);
+
+    const targetTodo = mockTodos.find((todo) => todo.id === Number(todo_id));
+
+    if (!targetTodo) {
+      return new HttpResponse(null, { status: 404 });
+    }
+
+    // 提案のみを返し、保存済みの Todo は変更しない
+    const response: TodoBreakdownResponse = {
+      subtasks: [
+        {
+          title: "必要な情報を整理する",
+          description: "タスクの目的と完了条件を確認",
+        },
+        {
+          title: "作業を実行する",
+          description: "整理した内容に沿って作業を進める",
+        },
+        {
+          title: "結果を確認する",
+          description: "完了条件を満たしているか確認",
+        },
+      ],
+    };
+
+    return HttpResponse.json(response, { status: 200 });
   }),
 
   http.put(`${BASE_URL}/api/todo/:todo_id`, async ({ request, params }) => {
