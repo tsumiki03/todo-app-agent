@@ -5,6 +5,7 @@ import type {
   TodoUpdateInput,
   TodoBreakdownResponse,
   SubtaskBatchCreateInput,
+  TodoTree,
 } from "../types";
 
 const API_BASE = "/api/todo";
@@ -12,6 +13,11 @@ const API_BASE = "/api/todo";
 export const todoApi = {
   getAll: async (): Promise<Todo[]> => {
     const res = await api.get(`${API_BASE}/`);
+    return res.data;
+  },
+
+  getTree: async (): Promise<TodoTree[]> => {
+    const res = await api.get(`${API_BASE}/tree`);
     return res.data;
   },
 
