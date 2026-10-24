@@ -3,22 +3,32 @@ import type { TodoBreakdownResponse } from "../types";
 import { todoApi } from "../api/todoApi";
 
 export const useTodoBreakdown = () => {
+  const {
+    mutateAsync,
+    isPending,
+    error: mutationError,
+    reset,
+  } = useMutation({
+    mutationFn: (todo_id: number) => todoApi.breakdown(todo_id),
+  });
 
-  const breakdownTodo = async (_todo_id: number) => {
-    const data: TodoBreakdownResponse = {
-      subtasks: [
-        {title: "subtask1", description: ""}
-      ]
-    };
+  const breakdownTodo = async (todo_id: number) => {
+    const data: TodoBreakdownResponse = await mutateAsync(todo_id);
     return data;
   };
 
-  const error: string | null = null;
+  // エラーメッセージの文字列抽出（必要に応じて整形）
+  const errorMessage =
+    mutationError instanceof Error
+      ? mutationError.message
+      : mutationError
+        ? "failed to fetch subtask proposals"
+        : null;
 
   return {
     breakdownTodo,
-    isPending: false,
-    error,
-    reset: () => {},
+    isPending,
+    error: errorMessage,
+    reset,
   };
 };
