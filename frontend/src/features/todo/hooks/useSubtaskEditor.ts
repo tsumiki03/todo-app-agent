@@ -1,9 +1,20 @@
+import { useState } from "react";
 import type { Todo, SubtaskDraft, SubtaskProposal } from "../types";
 
 export const useSubtaskEditor = () => {
 
-  const drafts: SubtaskDraft[] = [];
-  const initializeDrafts = (_proposals: SubtaskProposal[]) => {};
+  const [drafts, setDrafts] = useState<SubtaskDraft[]>([]);
+
+  const initializeDrafts = (proposals: SubtaskProposal[]) => {
+    const proposalsCopy = structuredClone(proposals);
+    const proposalsCopyWithId = proposalsCopy.map((proposal) => ({
+      tempId: crypto.randomUUID(),
+      title: proposal.title,
+      description: proposal.description,
+    }));
+    setDrafts(proposalsCopyWithId);
+  };
+
   const updateDraft = (_tempId: string, _fields: Partial<SubtaskProposal>) => {};
   const saveSubtasks = async (_todo_id: number) => {
     const response: Todo[] = [
