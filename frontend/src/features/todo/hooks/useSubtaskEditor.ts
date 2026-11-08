@@ -1,5 +1,13 @@
 import { useState } from "react";
-import type { Todo, SubtaskDraft, SubtaskProposal } from "../types";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import type {
+  Todo, 
+  SubtaskDraft, 
+  SubtaskProposal,
+  SubtaskBatchCreateInput,
+} from "../types";
+import { todoApi } from "../api/todoApi";
+
 
 export const useSubtaskEditor = () => {
 
@@ -22,22 +30,48 @@ export const useSubtaskEditor = () => {
     );
   };
 
-  const saveSubtasks = async (_todo_id: number) => {
-    const response: Todo[] = [
-      {
-        id: 1,
-        parent_id: 1,
-        title: "task", 
-        description: "", 
-        is_done: false, 
-        created_at: "2026-01-01T00:00:00Z",
-      },
-    ];
+  const queryClient = useQueryClient();
+
+  const {
+    mutateAsync,
+    isPending,
+    error: mutationError,
+    reset: resetMutation,
+  } = useMutation({
+    mutationFn: ({todo_id, data}: {todo_id: number, data: SubtaskBatchCreateInput}) => 
+      todoApi.createSubtasks(todo_id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["todos"],
+      })
+    }
+  });
+
+  const saveSubtasks = async (todo_id: number) => {
+
+    const draftsData = drafts.map((draft) => ({
+      title: draft.title,
+      description: draft.description,
+    }));
+
+    const data: SubtaskBatchCreateInput = {subtasks: draftsData};
+    
+    const response: Todo[] = await mutateAsync({todo_id, data});
     return response;
   };
-  const isPending = false;
-  const error: string | null = null;
-  const reset = () => {};
+
+  // エラーメッセージの文字列抽出（必要に応じて整形）
+  const errorMessage =
+    mutationError instanceof Error
+      ? mutationError.message
+      : mutationError
+        ? "failed to create subtasks"
+        : null;
+
+  const reset = () => {
+    setDrafts([]);
+    resetMutation();
+  };
 
   return {
     drafts,
@@ -45,7 +79,7 @@ export const useSubtaskEditor = () => {
     updateDraft,
     saveSubtasks,
     isPending,
-    error,
+    error: errorMessage,
     reset,
   };
 };
