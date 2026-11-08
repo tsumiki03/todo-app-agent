@@ -8,6 +8,7 @@ import type {
 } from "../types";
 import { todoApi } from "../api/todoApi";
 
+const TODOS_QUERY_KEY = ["todos"];
 
 export const useSubtaskEditor = () => {
 
@@ -42,19 +43,19 @@ export const useSubtaskEditor = () => {
       todoApi.createSubtasks(todo_id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: ["todos"],
+        queryKey: TODOS_QUERY_KEY,
       })
     }
   });
 
-  const saveSubtasks = async (todo_id: number) => {
+  const saveSubtasks = async (todo_id: number): Promise<Todo[]> => {
 
-    const draftsData = drafts.map((draft) => ({
+    const subtasks = drafts.map((draft) => ({
       title: draft.title,
       description: draft.description,
     }));
 
-    const data: SubtaskBatchCreateInput = {subtasks: draftsData};
+    const data: SubtaskBatchCreateInput = { subtasks };
     
     const response: Todo[] = await mutateAsync({todo_id, data});
     return response;
