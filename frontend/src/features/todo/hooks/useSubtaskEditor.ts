@@ -14,7 +14,10 @@ export const useSubtaskEditor = () => {
     setDrafts(newDrafts);
   };
 
-  const updateDraft = (_tempId: string, _fields: Partial<SubtaskProposal>) => {};
+  const updateDraft = (tempId: string, fields: Partial<SubtaskProposal>) => {
+    setDrafts((prev) => prev.map((t) => t.tempId === tempId ? {...t, ...fields} : t));
+  };
+
   const saveSubtasks = async (_todo_id: number) => {
     const response: Todo[] = [
       {
