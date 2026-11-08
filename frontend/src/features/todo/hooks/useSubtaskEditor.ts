@@ -6,13 +6,12 @@ export const useSubtaskEditor = () => {
   const [drafts, setDrafts] = useState<SubtaskDraft[]>([]);
 
   const initializeDrafts = (proposals: SubtaskProposal[]) => {
-    const proposalsCopy = structuredClone(proposals);
-    const proposalsCopyWithId = proposalsCopy.map((proposal) => ({
+    const newDrafts: SubtaskDraft[] = proposals.map((proposal) => ({
       tempId: crypto.randomUUID(),
       title: proposal.title,
       description: proposal.description,
     }));
-    setDrafts(proposalsCopyWithId);
+    setDrafts(newDrafts);
   };
 
   const updateDraft = (_tempId: string, _fields: Partial<SubtaskProposal>) => {};
