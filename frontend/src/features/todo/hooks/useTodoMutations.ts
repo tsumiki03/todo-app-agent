@@ -48,8 +48,7 @@ export const useTodoMutations = () => {
     error: deleteMutationError,
     reset: resetDelete,
   } = useMutation({
-    mutationFn: (todo_id: number) =>
-      todoApi.delete(todo_id),
+    mutationFn: (todo_id: number) => todoApi.delete(todo_id),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: TODOS_QUERY_KEY,
@@ -65,7 +64,7 @@ export const useTodoMutations = () => {
   const updateTodo = async (todo_id: number, fields: TodoUpdateInput) => {
     const response: Todo = await updateMutateAsync({ todo_id, fields });
     return response;
-  }
+  };
 
   const deleteTodo = async (todo_id: number) => {
     await deleteMutateAsync(todo_id);
