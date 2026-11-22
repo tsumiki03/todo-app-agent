@@ -56,22 +56,28 @@ export const TodoTreeApp = () => {
               </Text>
             )
           ) : (
-            <ul>
-              {todoTrees.map((parent) => (
-                <li key={parent.id}>
-                  <Paper withBorder p="md" radius="md"> 
-                    <Text fw={700}>{parent.title}</Text>
-                    {parent.subtasks.length > 0 && (
-                      <ul>
-                        {parent.subtasks.map((child) => (
-                          <li key={child.id}>{child.title}</li>
-                        ))}
-                      </ul>
-                    )}
-                  </Paper>
-                </li>
-              ))} 
-            </ul>
+            todoTrees.map((parent) => (
+              <Paper key={parent.id} withBorder p="md" radius="md"> 
+                <Text fw={700}>{parent.title}</Text>
+                {parent.subtasks.length > 0 && (
+                  <Stack
+                    component="ul"
+                    role="list"
+                    gap="xs"
+                    mt="xs"
+                    mb={0}
+                    pl="md"
+                    style={{ listStyle: "none" }}
+                  >
+                    {parent.subtasks.map((child) => (
+                      <li key={child.id}>
+                        <Text>{child.title}</Text>
+                      </li>
+                    ))}
+                  </Stack>
+                )}
+              </Paper>
+            )) 
           )} 
         </Stack>
       </Paper>
