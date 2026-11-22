@@ -50,9 +50,11 @@ export const TodoTreeApp = () => {
         {/* タスク一覧表示 */}
         <Stack gap="xs">
           {todoTrees.length === 0 ? (
-            <Text c="dimmed" ta="center" py="xl" size="sm">
-              タスクがまだ登録されていません
-            </Text>
+            !error && (
+              <Text c="dimmed" ta="center" py="xl" size="sm">
+                タスクがまだ登録されていません
+              </Text>
+            )
           ) : (
             <ul>
               {todoTrees.map((parent) => (
